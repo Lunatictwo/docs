@@ -49,19 +49,19 @@ Then, make sure Docker is running on your laptop. Install Docker [here](https://
 
 Next, bring up the DinD K8s. 
 
-    wget https://cdn.rawgit.com/kubernetes-sigs/kubeadm-dind-cluster/master/fixed/dind-cluster-v1.10.sh
-    chmod +x dind-cluster-v1.10.sh
-    NUM_NODES=4 ./dind-cluster-v1.10.sh up
+    wget https://cdn.rawgit.com/kubernetes-sigs/kubeadm-dind-cluster/64a2befa65ce23475158b65793e56d4bc1ae0a79/fixed/dind-cluster-v1.11.sh
+    chmod +x dind-cluster-v1.11.sh
+    NUM_NODES=4 ./dind-cluster-v1.11.sh up
     kubectl config use-context dind
 
 Launching this will take a while, a good time to stretch and drink some water.
 
-Ensure the DinD cluster works: (KEVIN's: these two commands don't work, give error: "Unable to connect to the server: x509: certificate signed by unknown authority")
+Ensure the DinD cluster works:
 
     kubectl get node,componentstatus 
     kubectl get pod -n kube-system
 
-If you would like, you can now [view the dashboard](http://localhost:8001/api/v1/namespaces/kube-system/services/kubernetes-dashboard/proxy/) once you start the proxy with: (KEVIN's NOTE: launching dashboard doesn't work, give error: "proxy error: x509: certificate signed by unknown authority")
+If you would like, you can now [view the dashboard](http://localhost:8001/api/v1/namespaces/kube-system/services/kubernetes-dashboard/proxy/) once you start the proxy with:
 
     kubectl proxy
 
@@ -71,8 +71,6 @@ Local Persistent volumes don't work right in DinD so we need to provision them m
     git clone https://github.com/pingcap/tidb-operator
     # temporary directory until repo switch happens
     cd tidb-operator/new-operator
-    
-    (KEVIN's NOTE: below commands don't work: same x509 error as above)
     ./manifests/local-dind/pv-hosts.sh
     kubectl apply -f manifests/local-storageclass.yaml
 
@@ -87,9 +85,7 @@ You need to have helm installed and tiller running.
     bash helm.sh
     helm init
 
-(KEVIN's Note: all steps below don't work w/o resolving x509 certificate issue above.)
-
-Use helm to launch tidb-operator
+Use helm to launch tidb-operator. Note that you may need to wait a few additional seconds for `helm init` to finish.
 
     cd ..
     git clone https://github.com/pingcap/tidb-operator
