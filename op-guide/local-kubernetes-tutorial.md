@@ -38,6 +38,8 @@ Additionally, we provide [tidb-operator](), a Kubernetes operator. This program 
 
 ### Installing a Kubernetes cluster on your laptop
 
+This installation has been tested to work on Mac and Linux, but please note that running Kubernetes on a laptop is a work in progress.
+
 First we need to run a Kubernetes (k8s) cluster. minikube is the popular option for that. However, minikube only creates one Kubernetes node. To run TiDB, we need multiple Kubernetes nodes. There are a few options for this, but for this tutorial we will use DinD (Docker in Docker).
 
 DinD (Docker in Docker) allows for running the docker daemon inside a top-level docker container. This means the top-level container can simulate as a Kubernetes node and have containers launched inside it. The kubeadm-
@@ -47,16 +49,18 @@ First [install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
 Then, make sure Docker is running on your laptop. Install Docker [here](https://docs.docker.com/install/) if you haven't done so.
 
-Next, bring up the DinD K8s. 
+Next, we will bring up the DinD K8s. First we need to make sure that `sha1sum` installed:
 
-    wget https://cdn.rawgit.com/kubernetes-sigs/kubeadm-dind-cluster/64a2befa65ce23475158b65793e56d4bc1ae0a79/fixed/dind-cluster-v1.11.sh
-    chmod +x dind-cluster-v1.11.sh
-    NUM_NODES=4 ./dind-cluster-v1.11.sh up
-    kubectl config use-context dind
+    which sha1sum || brew install md5sha1sum
+
+Then we can bring the cluster up
+
+    git clone https://github.com/pingcap/kubeadm-dind-cluster.git
+    cd kubeadm-dind-cluster
+    DIND_USE_NFS_STORAGE=false NUM_NODES=4 ./tools/multi_k8s_dind_cluster_manager.sh rebuild e2e-v1.10
 
 Launching this will take a while, a good time to stretch and drink some water.
-
-Ensure the DinD cluster works:
+When you are back, and the install finishes, ensure that the DinD cluster works:
 
     kubectl get node,componentstatus 
     kubectl get pod -n kube-system
@@ -79,22 +83,25 @@ Local Persistent volumes don't work right in DinD so we need to provision them m
 
 This process is the same regardless of how you create a Kubernetes cluster. First we launch the operator:
 
-You need to have helm installed and tiller running.
+You need to have helm installed and tiller running as tested by `helm ls`. The DinD installer above will install helm. But you can also install it with:
 
     curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get > helm.sh
     bash helm.sh
-    helm init
 
-Use helm to launch tidb-operator. Note that you may need to wait a few additional seconds for `helm init` to finish.
+Make sure helm is initialized.
+
+    helm init --upgrade
+
+Use helm to launch tidb-operator. Note that you may need to wait a few additional seconds for `helm init` to finish its deployment.
 
     cd ..
-    git clone https://github.com/pingcap/tidb-operator
+    git clone https://github.com/pingcap/private-tidb-operator
     cd tidb-operator/new-operator
     helm install charts/tidb-operator --name tidb-operator --namespace=tidb-operator
 
 Now we need to wait for the operator to come up. This can be done with:
 
-    while kubectl get pods --namespace tidb-operator -l app=tidb-operator --no-headers | grep -v Running ; do sleep 2 ; echo "\nwaiting for tidb operator to startup" ; done
+    kubectl get pods --namespace tidb-operator -l app=tidb-operator
 
 Now we can launch TiDB itself:
 
@@ -104,6 +111,8 @@ Now we can launch TiDB itself:
 You now have a distributed database running on Kubernetes! It should take less than a minute for all the services to come up, but you can watch this process with:
 
     watch kubectl get pods --namespace tidb
+
+TODO: screenshot of proper output.
 
 We can connect to it with MySQL
 
@@ -117,3 +126,17 @@ If you don't have MySQL installed, you can run it from a container:
 Similarly, you can open the [Grafana dashboard](http://localhost:3000/dashboard/db/tidb-cluster-pd) for operational metrics after forwarding the grafana port
 
     kubectl port-forward svc/demo-cluster-grafana 3000:3000 -n tidb
+
+
+### Cleaning up
+
+The installer script for DinD comes with its own clean command to wipe out the laptop Kubernetes cluster.
+
+    NUM_NODES=4 ./dind-cluster-v1.11.sh clean.
+
+If you want to keep your cluster running, you can un-install the helm charts.
+To avoid data loss, persistent volumes and their claims are maintained and also need to be deleted
+
+    helm delete --purge tidb-operator tidb-cluster
+    kubectl get pvc --no-headers -n tidb | awk '{print $1}' | xargs kubectl delete --force pvc -n tidb
+    kubectl get pv -l env=dind --no-headers | awk '{print $1}' | xargs kubectl delete --force pv
