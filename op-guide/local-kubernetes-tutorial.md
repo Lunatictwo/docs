@@ -72,9 +72,9 @@ If you would like, you can now [view the dashboard](http://localhost:8001/api/v1
 Local Persistent volumes don't work right in DinD so we need to provision them manually ourselves
 
     cd ..
-    git clone https://github.com/pingcap/tidb-operator
+    git clone https://github.com/pingcap/private-tidb-operator
     # temporary directory until repo switch happens
-    cd tidb-operator/new-operator
+    cd private-tidb-operator/new-operator
     git fetch origin
     git checkout gregwebs/setup-scripts
     ./manifests/local-dind/setup.sh
@@ -98,7 +98,8 @@ Use helm to launch tidb-operator. Note that you may need to wait a few additiona
 
     cd ..
     git clone https://github.com/pingcap/private-tidb-operator
-    cd tidb-operator/new-operator
+    # temporary directory until repo switch happens
+    cd private-tidb-operator/new-operator
     helm install charts/tidb-operator --name tidb-operator --namespace=tidb-operator
 
 Now we need to wait for the operator to come up. This can be done with:
