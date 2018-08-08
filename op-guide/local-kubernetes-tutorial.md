@@ -75,11 +75,12 @@ Local Persistent volumes don't work right in DinD so we need to provision them m
     git clone https://github.com/pingcap/tidb-operator
     # temporary directory until repo switch happens
     cd tidb-operator/new-operator
-    ./manifests/local-dind/pv-hosts.sh
-    kubectl apply -f manifests/local-storageclass.yaml
+    git fetch origin
+    git checout gregwebs/setup-scripts
+    ./manifests/local-dind/setup.sh
 
 
-### Running TiDB
+## Running TiDB
 
 This process is the same regardless of how you create a Kubernetes cluster. First we launch the operator:
 
@@ -128,7 +129,21 @@ Similarly, you can open the [Grafana dashboard](http://localhost:3000/dashboard/
     kubectl port-forward svc/demo-cluster-grafana 3000:3000 -n tidb
 
 
-### Cleaning up
+Lets add some data
+
+	wget http://download.pingcap.org/tispark-sample-data.tar.gz
+	tar zxvf tispark-sample-data.tar.gz
+	cd tispark-sample-data
+	mysql --local-infile=1 -u root -h 127.0.0.1 -P 4000 < dss.ddl
+
+Now you can connect to MySQL again and look at your data:
+
+	USE TPCH_001;
+	SHOW TABLES;
+	select * from nation;
+
+
+## Cleaning up
 
 The installer script for DinD comes with its own clean command to wipe out the laptop Kubernetes cluster.
 
@@ -138,5 +153,5 @@ If you want to keep your cluster running, you can un-install the helm charts.
 To avoid data loss, persistent volumes and their claims are maintained and also need to be deleted
 
     helm delete --purge tidb-operator tidb-cluster
-    kubectl get pvc --no-headers -n tidb | awk '{print $1}' | xargs kubectl delete --force pvc -n tidb
-    kubectl get pv -l env=dind --no-headers | awk '{print $1}' | xargs kubectl delete --force pv
+    kubectl get pv -o name | xargs -i kubectl patch {} -p '{"spec":{"persistentVolumeReclaimPolicy":"Delete"}}'
+    kubectl delete pvc -n tidb --all
