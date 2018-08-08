@@ -79,6 +79,7 @@ Local Persistent volumes don't work right in DinD so we need to provision them m
     git checout gregwebs/setup-scripts
     ./manifests/local-dind/setup.sh
 
+Note that it may take some time to pull the docker image for local volume provisioning.
 
 ## Running TiDB
 
