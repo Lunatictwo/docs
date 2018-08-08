@@ -76,7 +76,7 @@ Local Persistent volumes don't work right in DinD so we need to provision them m
     # temporary directory until repo switch happens
     cd tidb-operator/new-operator
     git fetch origin
-    git checout gregwebs/setup-scripts
+    git checkout gregwebs/setup-scripts
     ./manifests/local-dind/setup.sh
 
 Note that it may take some time to pull the docker image for local volume provisioning.
